@@ -51,3 +51,68 @@ sequenceDiagram
     Client ->> User: 最終出力結果
 ```
 
+# AI agentのReAct
+論文。読むのしんどいから補足資料っぽいやつのみ参照。
+https://arxiv.org/pdf/2210.03629
+
+
+以下のイメージっぽい？
+
+- Thought: 思考を推論させる
+- Action: 何をアクション実行するか選ばせて、実際に実行
+- Observation: アクション結果をプロンプトに含める
+
+```
+Thouth(with Observation) -> Action -> ...
+```
+
+```mermaid
+sequenceDiagram
+    actor User
+    participant Agent
+    participant LLM
+    participant MCPServer
+    Agent ->> MCPServer: list_tools
+    Agent -> Client: cache tools
+
+    User ->> Agent: Request
+
+    loop 最終出力まで繰り返す
+        Agent ->> LLM: やり取りの流れの説明と履歴を渡して回答させる
+        alt 最終出力？
+            Agent ->> User: 最終出力をパースして返す
+        end
+        Agent ->> Agent: 回答を履歴に追加
+        Agent ->> Agent: Actionをパースする
+        Agent ->> MCPServer: Action実行
+        Agent ->> Agent: ObservationとしてAction結果を履歴に追加
+    end
+```
+
+## やり取りの流れのプロンプト
+NVIDIAのサイトを参照。
+https://docs.nvidia.com/agentiq/1.0.0/components/react-agent.html#react-prompting-and-output-format
+
+こんな感じ。
+
+```
+以下の質問にできるだけ正確に答えてください。
+質問:
+{question}
+
+---
+以下のツールの使用ができます。
+
+{tools}
+
+以下の形式でやり取りします。
+ツールを使用する際は以下の形式を厳守してください。
+
+Question: 回答してほしい質問
+Thought: 次に何をするべきか考える。
+Action: アクション実行を要求する。[tools]のいずれかを使用できます
+Observation: ツールの実行結果。
+...(Though/Action/Observationを最終回答ができるまで繰り返します)
+Thought: 最終回答ができるようになった。
+Final Answer: 元の質問に対する最終回答を出力します。
+```
