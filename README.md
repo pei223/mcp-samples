@@ -5,18 +5,6 @@ pip install fastmcp
 pip install openai
 ```
 
-## どうやって使う？
-接続する側がtool/resourceの一覧を引っ張ってきて、それらから必要なtoolを実行する。
-
-どう実行するか、どう決めるかは「AI agentのReAct」を参照。
-
-### 例: Claude desktop
-mcp-serverを起動する設定を設定ファイルに書いておけば勝手に立ち上げて接続してくれる。
-
-接続に関しては上記のやり方もあれば、すでに起動済みのサーバーに対してhttpやstdioで繋いだり、実行ファイルをそのまましていすることもある。
-その辺は`mcp-client/testserver_client.py`を参照。
-
-
 # 各リソースの概念
 https://modelcontextprotocol.io/introduction
 
@@ -25,19 +13,36 @@ https://modelcontextprotocol.io/introduction
 
 動的なものはresource templateとも呼ばれる。
 
+これはllmがresourceを選ぶとかではなく、固定だったりルールベースでclient側がどれ使うか選ぶものらしい。
+
+
 ## tool
 必要に応じて外部APIや関数を実行する。
 
 モデルから実世界に繋ぐイメージ。
 
+どれを使うかをllmが選び、動的に使用するイメージ。
+
 
 ## prompt
-プロンプトをサーバーから返すようにする。
+プロンプトをサーバーから返すようにする。正直使いどころ分からん。
 
 管理をサーバーでしたいくらいのイメージか？
 
 
-# ClientはどうMCP serverを使う？
+# MCP Client
+## MCPをどうやって使う？
+接続する側がtool/resourceの一覧を引っ張ってきて、それらから必要なtoolを実行する。
+
+どう使うかはclientの自由だが、どう決めるかなどのアーキテクチャ例は「AI agentのReAct」を参照。
+
+### 例: Claude desktop
+mcp-serverを起動する設定を設定ファイルに書いておけば勝手に立ち上げて接続してくれる。
+
+接続に関しては上記のやり方もあれば、すでに起動済みのサーバーに対してhttpやstdioで繋いだり、実行ファイルをそのまましていすることもある。
+その辺は`mcp-client/testserver_client.py`を参照。
+
+### 例: openai
 OpenAIのAPIでは、toolsを`list_tools`で取得して、どれを使うか&パラメータを推論して`Approve`を求めるっぽい。
 https://platform.openai.com/docs/guides/tools-remote-mcp
 
@@ -45,6 +50,7 @@ https://platform.openai.com/docs/guides/tools-remote-mcp
 https://platform.openai.com/docs/guides/function-calling?api-mode=chat
 
 
+## シーケンス
 ```mermaid
 sequenceDiagram
     actor User
@@ -65,20 +71,23 @@ sequenceDiagram
     Client ->> User: 最終出力結果
 ```
 
+
 # AI agentのReAct
+agentのアーキテクチャの一つ。
+
 論文。読むのしんどいから補足資料っぽいやつのみ参照。
 https://arxiv.org/pdf/2210.03629
 
 
-以下のイメージっぽい？
+以下を推論させる
 
-- Thought: 思考を推論させる
-- Action: 何をアクション実行するか選ばせて、実際に実行
-- Observation: アクション結果をプロンプトに含める
+- Thought: 思考
+- Action: 何をアクション実行するか、パラメータも含める
+- Observation: アクション待機
 
-```
-Thouth(with Observation) -> Action -> ...
-```
+その後にActionをClient側で実行して結果を履歴に含めて再度推論。
+最終出力出たら終わりというイメージ。
+
 
 ```mermaid
 sequenceDiagram
